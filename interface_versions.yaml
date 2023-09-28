@@ -1,0 +1,25 @@
+---
+#---------------
+# Model version
+#---------------
+
+Macro-Projections:
+  type: model_data
+  version: 1
+
+
+#---------------------
+# Dependency versions
+#---------------------
+
+BLS: 
+  type: raw_data
+  version: 1
+ 
+SSA: 
+  type: raw_data
+  version: 1
+  
+CBO: 
+  type: raw_data
+  version: 1

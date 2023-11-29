@@ -19,13 +19,13 @@ out_vintage <- "2023112915"
 
 # Define first years of historical/projected data
 firstyr_hist <- 1970
-firstyr_proj <- 2017
+firstyr_proj <- 2023
 firstyr_ltbo <- firstyr_proj + 11
 lastyr_proj <- firstyr_proj + 30
 
 # Define data paths
-cbo_path <- paste0("/gpfs/gibbs/project/sarin/shared/raw_data/CBO/v2/", cbo_vintage, "/historical/")
-ssa_path <- paste0("/Users/Harris_Eppsteiner/Desktop/macro-projections/raw_data/v2/", ssa_vintage, "/historical/")
+cbo_path <- paste0("/gpfs/gibbs/project/sarin/shared/raw_data/CBO/v2/", cbo_vintage, "/baseline/")
+ssa_path <- paste0("/gpfs/gibbs/project/sarin/shared/raw_data/SSA/v2/", ssa_vintage, "/historical/")
 out_path <- paste0("/gpfs/gibbs/project/sarin/shared/model_data/Macro-Projections/v2/", out_vintage, "/baseline/")
 
 # Create output directories if they doesn't already exist
@@ -41,13 +41,13 @@ dir.create(out_path)
 #------------------------------
 
 # i. CY GDP/EMP
-econ_hist_cy <- read.csv(file.path(cbo_path, "Historical-Economic-Data", "Annual_CY.csv"))
+econ_hist_cy <- read.csv(file.path(cbo_path, "Annual_CY.csv"))
 econ_hist_cy <- econ_hist_cy %>%
  select(date, gdp, empl_payroll_nf, wages_and_salaries, cpiu, chained_cpiu, pce_price_index) %>%
  rename(year = date, emp_est = empl_payroll_nf, gdp_wages = wages_and_salaries, cpiu_index = cpiu, ccpiu_index = chained_cpiu, pce_deflator_index = pce_price_index)
 
 # ii. FY GDP
-econ_hist_fy <- read.csv(file.path(cbo_path, "Historical-Economic-Data", "Annual_FY.csv"))
+econ_hist_fy <- read.csv(file.path(cbo_path, "Annual_FY.csv"))
 econ_hist_fy <- econ_hist_fy %>%
  select(date, gdp) %>%
  rename(year = date, gdp_fy = gdp)
@@ -125,7 +125,7 @@ econ_10yr_fy <- econ_10yr_fy %>% filter(!is.na(year) & year>=firstyr_proj)
 
 # Ten-year projections, CY
 econ_10yr_cy <- as.data.frame(t(read.xlsx(file.path(cbo_path, "Economic-Projections.xlsx"), sheet = "2. Calendar Year", startRow = 7, skipEmptyRows=TRUE, skipEmptyCols = TRUE, colNames=FALSE)))
-if (vintage == "20171231") {
+if (cbo_vintage == "2017123100") {
  econ_10yr_cy <- econ_10yr_cy %>% select(1,3,9,16,20,24,34,39,40,42,47,48,49,53,55,59,61,63,65,67,69,74,76,83) %>% mutate_if(is.character,as.numeric) 
  names(econ_10yr_cy) <- c("year", "gdp", "rgdp_index", "pce_deflator_index","cpiu_index","gdp_deflator_index",
               "u3","lfpr","emp_hh", "emp_est","tsy_10y", "tsy_3m", "ffr",
@@ -142,7 +142,7 @@ econ_10yr_cy <- econ_10yr_cy %>% filter(!is.na(year) & year>=firstyr_proj)
 econ_10yr_cy$gdp_proprietors = econ_10yr_cy$gdp_proprietors_farm + econ_10yr_cy$gdp_proprietors_nonfarm
 
 #LTBO, Econ
-if (vintage == "20171231") {
+if (cbo_vintage == "2017123100") {
  econ_ltbo <- as.data.frame(t(read.xlsx(file.path(cbo_path, "LTBO.xlsx"), sheet = "2. Econ and Demographic Vars", startRow = 7, skipEmptyRows=TRUE, skipEmptyCols = TRUE, colNames=FALSE))) %>% 
         select(1,10,11,12,13,15,26,27,32,33) %>% mutate_if(is.character,as.numeric) 
  names(econ_ltbo) <- c("year", "rgdp_index_gr", "gdp_gr", "lf_gr", "lfpr", "u3",
@@ -313,7 +313,7 @@ budget_hist <- budget_hist[, budget_hist_order]
 #------------------------------
 #Revenues (Table 1)
 rev_10yr_proj <- as.data.frame(t(read.xlsx(file.path(cbo_path, "Revenue.xlsx"), sheet = "1. Revenue Projections", startRow = 7, skipEmptyRows=TRUE, skipEmptyCols = TRUE, colNames=FALSE)))
-if (vintage == "20171231") {
+if (cbo_vintage == "2017123100") {
  rev_10yr_proj <- rev_10yr_proj %>% select(3,4,5,6,8,9,10,11,12,15) %>% mutate_if(is.character,as.numeric) 
 } else {
  rev_10yr_proj <- rev_10yr_proj %>% select(2,3,4,5,7,8,9,10,11,13) %>% mutate_if(is.character,as.numeric) 
@@ -341,7 +341,7 @@ rev_proj <- rev_proj[, rev_proj_order]
 
 
 #Outlays (LTBO Table 1)
-if (vintage == "20171231") {
+if (cbo_vintage == "2017123100") {
  fig9 <- read.xlsx(file.path(cbo_path, "LTBO.xlsx"), sheet = "Figure 9", 
           startRow = 8, skipEmptyRows=TRUE, skipEmptyCols = TRUE, colNames=TRUE) %>%
       mutate_if(is.character,as.numeric) 
@@ -449,5 +449,5 @@ dependencies <- data.frame(ID = c("baseline","baseline"),
                            interface = c("SSA","CBO"),
                            version = c("2","2"),
                            vintage = c(ssa_vintage, cbo_vintage),
-                           scenario = c("baseline","historical"))
-write.csv(dependencies, file = paste0(gsub("/baseline/","",out_path),"dependencies"), row.names = FALSE, na="")
+                           scenario = c("historical","baseline"))
+write.csv(dependencies, file = paste0(gsub("/baseline/","/",out_path),"dependencies.csv"), row.names = FALSE, na="")

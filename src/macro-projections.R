@@ -446,8 +446,8 @@ write.csv(projections, file = paste0(out_path,"projections.csv"), row.names = FA
 
 # Dependencies
 dependencies <- data.frame(ID = c("baseline","baseline"),
-                           interface = c("CBO","SSA"),
+                           interface = c("SSA","CBO"),
                            version = c("2","2"),
-                           vintage = c(cbo_vintage, ssa_vintage),
+                           vintage = c(ssa_vintage, cbo_vintage),
                            scenario = c("baseline","historical"))
 write.csv(dependencies, file = paste0(gsub("/baseline/","",out_path),"dependencies"), row.names = FALSE, na="")

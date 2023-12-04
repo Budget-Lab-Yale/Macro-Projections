@@ -387,8 +387,19 @@ for (var in c("rev","rev_iit","rev_payroll")) {
  
 #------------------------------
 
-# 3. DEMOGRAPHIC PROJECTIONS
+# 3. DEMOGRAPHIC VARIABLES
 
+#------------------------------
+#------------------------------
+# A. HISTORICAL POPULATION
+#------------------------------
+demo_hist <- read.xlsx(file.path(cbo_path, "Demographic-Outlook.xlsx"), sheet = "Figure 2", startRow = 9, skipEmptyRows=TRUE, skipEmptyCols = TRUE, colNames=FALSE) %>% 
+             select(1,6) %>% mutate_if(is.character,as.numeric)
+names(demo_hist) <- c("year", "pop")
+demo_hist <- demo_hist %>% filter(!is.na(year) & year>=firstyr_hist & year<firstyr_proj)
+
+#------------------------------
+# B. PROJECTED POPULATION
 #------------------------------
 
 #Initialize data frame for projections
@@ -437,7 +448,7 @@ for (y in firstyr_proj:lastyr_proj) {
 
 #------------------------------
 # Historical
-historical <- econ_hist %>% left_join(budget_hist, by="year")
+historical <- econ_hist %>% left_join(budget_hist, by="year") %>% left_join(demo_hist, by="year") 
 write.csv(historical, file = paste0(out_path,"historical.csv"), row.names = FALSE, na="")
 
 # Projections

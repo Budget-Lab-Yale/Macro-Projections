@@ -15,7 +15,7 @@ fredr_set_key("4cfe9b7c31406f13e6f8c1a593c18c33")
 # Define input/output vintages
 cbo_vintage <- "2023112915"
 ssa_vintage <- "2023112915"
-out_vintage <- "2023112915"
+out_vintage <- "2023121311"
 
 # Define first years of historical/projected data
 firstyr_hist <- 1970
@@ -83,11 +83,11 @@ cpiu[, "cpiu_irs"] = cpiu[, "cpiu_irs"] / cpiu[cpiu$year == firstyr_proj, "cpiu_
 #    To account for this fact, we create an annual pseudo-index beginning with 
 #    (September 2016 - August 2017) = 100, corresponding to the base year for
 #    inflation-indexed provisions under the TCJA.
-for (y in 2017:firstyr_proj) {
+for (y in 2012:firstyr_proj) {
  fred_raw <- fredr("SUUR0000SA0", vintage_dates = as.Date(paste0(y,"-09-30"))) %>% select(date, value)
  names(fred_raw) <- c("date", paste0("ccpiu_",y,"0930"))
  
- if (y == 2017) ccpiu <- fred_raw
+ if (y == 2012) ccpiu <- fred_raw
  else ccpiu <- merge(ccpiu, fred_raw, by = "date", all=TRUE)
 }
 ccpiu$year <- year(as.Date(ccpiu$date, format = "%Y-%m-%d"))
@@ -95,9 +95,11 @@ ccpiu$month <- month(as.Date(ccpiu$date, format = "%Y-%m-%d"))
 ccpiu$year_irs <- ifelse(ccpiu$month < 9, ccpiu$year, ccpiu$year + 1)
 ccpiu <- ccpiu %>% select(year_irs, starts_with('ccpiu_'))
 ccpiu <- aggregate(. ~ year_irs, data = ccpiu, mean, na.action=NULL)
-ccpiu$ccpiu_irs[ccpiu$year_irs == 2017] <- 100
-for (y in 2018:firstyr_proj) {
- ccpiu$ccpiu_irs[ccpiu$year_irs == y] <- 100 * (ccpiu[ccpiu$year_irs == y, paste0("ccpiu_",y,"0930")]) / (ccpiu[ccpiu$year_irs == 2017, paste0("ccpiu_",y,"0930")])
+#ccpiu$ccpiu_irs[ccpiu$year_irs == 2012] <- 100
+for (y in 2012:firstyr_proj) {
+ #ccpiu$ccpiu_irs[ccpiu$year_irs == y] <- (ccpiu[ccpiu$year_irs == y, paste0("ccpiu_",y,"0930")]) / (ccpiu[ccpiu$year_irs == (y-1), paste0("ccpiu_",y,"0930")]) *
+ #                                           ccpiu$ccpiu_irs[ccpiu$year_irs == (y-1)]
+  ccpiu$ccpiu_irs[ccpiu$year_irs == y] <- (ccpiu[ccpiu$year_irs == y, paste0("ccpiu_",y,"0930")])
 }
 ccpiu <- subset(ccpiu, year_irs %in% seq(firstyr_hist, firstyr_proj)) %>% select(year_irs, ccpiu_irs)
 names(ccpiu) <- c("year", "ccpiu_irs")

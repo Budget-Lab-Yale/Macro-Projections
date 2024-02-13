@@ -25,7 +25,7 @@ CBO_LTBO_vintage        <- "20230628"
 SSA_Demographic_vintage <- "20230331"
 SSA_AWI_vintage <- "20231012"
 #c. Output
-out_vintage <- "2024021116"
+out_vintage <- "2024021315"
 
 # Define first/last years of historical/projected data
 firstyr_hist <- 1970
@@ -371,7 +371,7 @@ outlays_proj_ltbo <- outlays_proj_ltbo %>% filter(!is.na(year) & year>=(firstyr_
 #For years after lastyr_ltbo, extend by assuming that all variables are in long-run
 #steady-state as of lastyr_ltbo:
 lastyr_ltbo_share <- outlays_proj_ltbo %>% filter(year==lastyr_ltbo)
-for (y in lastyr_ltbo:lastyr_proj) {
+for (y in (lastyr_ltbo+1):lastyr_proj) {
   lastyr_ltbo_share$year <- y
   outlays_proj_ltbo <- bind_rows(outlays_proj_ltbo,lastyr_ltbo_share)
 }

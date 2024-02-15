@@ -25,7 +25,7 @@ CBO_LTBO_vintage        <- "20230628"
 SSA_Demographic_vintage <- "20230331"
 SSA_AWI_vintage <- "20231012"
 #c. Output
-out_vintage <- "2024021315"
+out_vintage <- "2024021509"
 
 # Define first/last years of historical/projected data
 firstyr_hist <- 1970
@@ -156,10 +156,12 @@ econ_ltbo <- as.data.frame(t(read.xlsx(file.path(CBO_LTBO_path, "LTBO-econ.xlsx"
 names(econ_ltbo) <- c("year", "rgdp_index_gr", "gdp_gr", "lfpr", "lf_gr", "u3",
             "pce_deflator_index_gr", "cpiu_index_gr", "gdp_deflator_index_gr", "tsy_10y", "avg_rate_debt") 
 econ_ltbo_debt <- econ_ltbo[, c("year","avg_rate_debt")] %>% filter(!is.na(year) & year>=firstyr_proj & year<firstyr_ltbo)
+econ_ltbo$tsy_10y_diff <- c(NA, diff(econ_ltbo$tsy_10y))
 econ_ltbo <-econ_ltbo %>% filter(!is.na(year) & year>=firstyr_ltbo)
 #NEW 02.11.2024: For years after lastyr_ltbo, extend by assuming that all variables are in long-run
-#steady-state as of lastyr_ltbo:
+#steady-state as of lastyr_ltbo (so zeroing out interest rate growth):
 lastyr_ltbo_rate <- econ_ltbo %>% filter(year==lastyr_ltbo)
+lastyr_ltbo_rate$tsy_10y_diff <- 0
 for (y in (lastyr_ltbo+1):lastyr_proj) {
   lastyr_ltbo_rate$year <- y
   econ_ltbo <- bind_rows(econ_ltbo,lastyr_ltbo_rate)
@@ -192,20 +194,18 @@ econ_all$gdp_nx = econ_all$gdp - econ_all$gdp_c - econ_all$gdp_i - econ_all$gdp_
 #EMP_HH, EMP_EST: use LF growth
 for (var in c("gdp_fy", "emp_hh", "emp_est")) {
  if (var =="gdp_fy")	 gr_var <- "gdp_gr"
- if (var =="emp_hh")	 gr_var <- "lf_gr"
- if (var =="emp_est") gr_var <- "lf_gr"
+ if (var =="emp_hh" | var =="emp_est")	 gr_var <- "lf_gr" 
  for (y in firstyr_ltbo:lastyr_proj) {
   econ_all[econ_all$year == y, var] = econ_all[econ_all$year == y-1, var] * (1 + (econ_all[econ_all$year == y, gr_var]/100))
  } 
 }
 
 #d. Project forward using level differences for other variables
-#TSY_3M, FFR: use differences in TSY_10Y
-for (var in c("tsy_3m","ffr")) {
- if (var =="tsy_3m")	 diff_var <- "tsy_10y"
- if (var =="ffr")	  diff_var <- "tsy_10y"
+#TSY_10Y, TSY_3M, FFR: use differences in TSY_10Y (from LTBO)
+for (var in c("tsy_10y", "tsy_3m","ffr")) {
+ diff_var <- "tsy_10y_diff"
  for (y in firstyr_ltbo:lastyr_proj) {
-  econ_all[econ_all$year == y, var] = econ_all[econ_all$year == y-1, var] + (econ_all[econ_all$year == y, diff_var] - econ_all[econ_all$year == y-1, diff_var])
+  econ_all[econ_all$year == y, var] = econ_all[econ_all$year == y-1, var] + econ_all[econ_all$year == y, diff_var]
  } 
 }
 

@@ -9,35 +9,30 @@ library(lubridate)
 library(fredr)
 library(tidyverse)
 
-# Set working directory source utility functions
-setwd("/gpfs/gibbs/project/sarin/hre2/repositories/Macro-Projections/")
-source("src/utils.R")
-
 # Set FRED key
-parse_api_keys("/gpfs/gibbs/project/sarin/hre2/api_keys.csv", keep=c("fred"))
-fredr_set_key(fred_key)
+fredr_set_key("4cfe9b7c31406f13e6f8c1a593c18c33")
 
 # Define input/output version and vintages
 data_version <- "v3"
 # a. CBO products
-CBO_Budget_Hist_vintage <- "20240207"
-CBO_Budget_Proj_vintage <- "20240618"
-CBO_Demographic_vintage <- "20240118"
-CBO_Econ_Hist_vintage   <- "20240618"
-CBO_Econ_Proj_vintage   <- "20240618"
-CBO_LTBO_vintage        <- "20240320"
+CBO_Budget_Hist_vintage <- "20170629"
+CBO_Budget_Proj_vintage <- "20170629"
+CBO_Demographic_vintage <- "20170330"
+CBO_Econ_Hist_vintage   <- "20170629"
+CBO_Econ_Proj_vintage   <- "20170629"
+CBO_LTBO_vintage        <- "20170330"
 #b. SSA products
-SSA_Demographic_vintage <- "20240506"
+SSA_Demographic_vintage <- "20230331"
 SSA_AWI_vintage <- "20231012"
 #c. Output
-out_vintage <- "2024061815"
+out_vintage <- "2017123100"
 
 # Define first/last years of historical/projected data
 firstyr_hist <- 1970
-firstyr_proj <- 2024
+firstyr_proj <- 2017
 firstyr_ltbo <- firstyr_proj + 11
-lastyr_ltbo <- 2054
-lastyr_proj <- 2097
+lastyr_ltbo <- 2047
+lastyr_proj <- 2091
 
 # Lists of data sources and vintages
 sources_hist <- c("SSA_AWI", "SSA_Demographic", "CBO_Budget_Hist","CBO_Econ_Hist")
@@ -144,11 +139,11 @@ econ_10yr_fy <- econ_10yr_fy %>% filter(!is.na(year) & year>=firstyr_proj)
 
 # Ten-year projections, CY
 econ_10yr_cy <- as.data.frame(t(read.xlsx(file.path(CBO_Econ_Proj_path, "Economic-Projections.xlsx"), sheet = "2. Calendar Year", startRow = 7, skipEmptyRows=TRUE, skipEmptyCols = TRUE, colNames=FALSE)))
-econ_10yr_cy <- econ_10yr_cy %>% select(1,3,7,38,42,46,48,
-                                        58,61,62,64,75,76,77,
-                                        83,85,89,91,93,95,97,99,
-                                        104,106,113) %>% mutate_if(is.character,as.numeric) 
-names(econ_10yr_cy) <- c("year", "gdp", "rgdp_index", "pce_deflator_index","cpiu_index","ccpiu_index","gdp_deflator_index",
+econ_10yr_cy <- econ_10yr_cy %>% select(1,3,9,16,20,24,
+                                        34,39,40,42,47,48,49,
+                                        53,55,59,61,63,65,67,69,
+                                        74,76,83) %>% mutate_if(is.character,as.numeric) 
+names(econ_10yr_cy) <- c("year", "gdp", "rgdp_index", "pce_deflator_index","cpiu_index","gdp_deflator_index",
               "u3","lfpr","emp_hh", "emp_est","tsy_10y", "tsy_3m", "ffr",
               "gdp_comp","gdp_wages", "gdp_proprietors_farm","gdp_proprietors_nonfarm","gdp_rent", "gdp_interest", "gdp_div", "gdp_corp",
               "gdp_c", "gdp_i","gdp_g")
@@ -156,10 +151,10 @@ econ_10yr_cy <- econ_10yr_cy %>% filter(!is.na(year) & year>=firstyr_proj)
 econ_10yr_cy$gdp_proprietors = econ_10yr_cy$gdp_proprietors_farm + econ_10yr_cy$gdp_proprietors_nonfarm
 
 #LTBO, Econ
-econ_ltbo <- as.data.frame(t(read.xlsx(file.path(CBO_LTBO_path, "LTBO-econ.xlsx"), sheet = "1. Econ Vars_Annual Rates", startRow = 8, skipEmptyRows=TRUE, skipEmptyCols = TRUE, colNames=FALSE))) %>%
-        select(1,6,8,9,10,12,23,24,25,29,30) %>% mutate_if(is.character,as.numeric) 
+econ_ltbo <- as.data.frame(t(read.xlsx(file.path(CBO_LTBO_path, "LTBO.xlsx"), sheet = "2. Econ and Demographic Vars", startRow = 7, skipEmptyRows=TRUE, skipEmptyCols = TRUE, colNames=FALSE))) %>%
+        select(1,10,11,13,12,15,26,27,32,33) %>% mutate_if(is.character,as.numeric) 
 names(econ_ltbo) <- c("year", "rgdp_index_gr", "gdp_gr", "lfpr", "lf_gr", "u3",
-            "pce_deflator_index_gr", "cpiu_index_gr", "gdp_deflator_index_gr", "tsy_10y", "avg_rate_debt") 
+             "cpiu_index_gr", "gdp_deflator_index_gr", "tsy_10y", "avg_rate_debt") 
 econ_ltbo_debt <- econ_ltbo[, c("year","avg_rate_debt")] %>% filter(!is.na(year) & year>=firstyr_proj & year<firstyr_ltbo)
 econ_ltbo$tsy_10y_diff <- c(NA, diff(econ_ltbo$tsy_10y))
 econ_ltbo <-econ_ltbo %>% filter(!is.na(year) & year>=firstyr_ltbo)
@@ -295,19 +290,23 @@ budget_hist_tab2 <- read.xlsx(file.path(CBO_Budget_Hist_path, "Historical-Budget
           mutate_if(is.character,as.numeric)
 names(budget_hist_tab2) <- c("year","rev_iit", "rev_payroll","rev_corp","rev_excise","rev_estate","rev_customs","rev_misc", "rev")
 budget_hist_tab2 <- budget_hist_tab2 %>% filter(!is.na(year))
+budget_hist_tab2 <- budget_hist_tab2[c(seq(1,50)),]
+
 
 #Table 3 (Outlays)
-budget_hist_tab3 <- read.xlsx(file.path(CBO_Budget_Hist_path, "Historical-Budget-Data.xlsx"), sheet = "3. Outlays", startRow = 9, skipEmptyRows=TRUE, skipEmptyCols = TRUE, colNames=TRUE) %>%
-          select(X1, Discretionary,Net.interest,Total) %>% mutate_if(is.character,as.numeric)
+budget_hist_tab3 <- read.xlsx(file.path(CBO_Budget_Hist_path, "Historical-Budget-Data.xlsx"), sheet = "3. Outlays", startRow = 8, skipEmptyRows=TRUE, skipEmptyCols = TRUE, colNames=TRUE) %>%
+          select(X1, Discretionary,Net.Interest,Total) %>% mutate_if(is.character,as.numeric)
 names(budget_hist_tab3) <- c("year","outlays_disc","outlays_ni","outlays")
 budget_hist_tab3 <- budget_hist_tab3 %>% filter(!is.na(year))
+budget_hist_tab3 <- budget_hist_tab3[c(seq(1,50)),]
 
 #Table 5 (Outlays)
-budget_hist_tab5 <- read.xlsx(file.path(CBO_Budget_Hist_path, "Historical-Budget-Data.xlsx"), sheet = "5. Mandatory Outlays", startRow = 8, skipEmptyRows=TRUE, skipEmptyCols = TRUE, colNames=TRUE) %>%
+budget_hist_tab5 <- read.xlsx(file.path(CBO_Budget_Hist_path, "Historical-Budget-Data.xlsx"), sheet = "5. Mandatory Outlays", startRow = 7, skipEmptyRows=TRUE, skipEmptyCols = TRUE, colNames=TRUE) %>%
  select(X1, Total, Social.Security, contains("health.care")) %>% mutate_if(is.character,as.numeric)
 names(budget_hist_tab5) <- c("year","outlays_mand","outlays_mand_oasdi","outlays_mand_health")
 budget_hist_tab5$outlays_mand_other <- budget_hist_tab5$outlays_mand - budget_hist_tab5$outlays_mand_oasdi - budget_hist_tab5$outlays_mand_health
 budget_hist_tab5 <- budget_hist_tab5 %>% filter(!is.na(year))
+budget_hist_tab5 <- budget_hist_tab5[c(seq(1,50)),]
 
 #Combine all historical budget data
 budget_hist <- budget_hist_tab2 %>%
@@ -324,10 +323,11 @@ budget_hist <- budget_hist[, budget_hist_order]
 #------------------------------
 #Revenues (Table 1)
 rev_10yr_proj <- as.data.frame(t(read.xlsx(file.path(CBO_Budget_Proj_path, "Revenue.xlsx"), sheet = "1. Revenue Projections", startRow = 7, skipEmptyRows=TRUE, skipEmptyCols = TRUE, colNames=FALSE)))
-rev_10yr_proj <- rev_10yr_proj %>% select(2,3,4,5,7,8,9,10,11,14) %>% mutate_if(is.character,as.numeric) 
+rev_10yr_proj <- rev_10yr_proj %>% select(3,4,5,6,8,9,10,11,12,15) %>% mutate_if(is.character,as.numeric) 
 names(rev_10yr_proj) <- c("year", "rev_iit", "rev_payroll","rev_corp", "rev_excise", "rev_fed_remit", "rev_customs", "rev_estate", "rev_misc_fees", "rev")
 rev_10yr_proj <- rev_10yr_proj %>% filter(!is.na(year) & year>=firstyr_proj)
 rev_10yr_proj$rev_misc = rev_10yr_proj$rev_fed_remit + rev_10yr_proj$rev_misc_fees
+rev_10yr_proj <- rev_10yr_proj[c(seq(1,11)),]
 
 #Project forward using growth in GDP_FY
 rev_vars <- c("rev", "rev_iit", "rev_payroll", "rev_corp", "rev_excise", "rev_estate", "rev_customs", "rev_misc")
@@ -348,27 +348,34 @@ rev_proj <- rev_proj[, rev_proj_order]
 
 
 #Outlays:
-#Ten-year outlays (BEO Table 1-1):
-outlays_proj_10yr <- as.data.frame(t(read.xlsx(file.path(CBO_Budget_Proj_path, "Budget-Projections.xlsx"), sheet = "Table 1-1, Adjusted", 
-                                                    startRow = 6, skipEmptyRows=FALSE, skipEmptyCols = TRUE, colNames=TRUE))) %>%
-                                                    select(1,12,13,14,15)
+#Ten-year outlays (BEO Table 1):
+outlays_proj_10yr <- as.data.frame(t(read.xlsx(file.path(CBO_Budget_Proj_path, "Budget-Projections.xlsx"), sheet = "Table 1", 
+                                                    startRow = 7, skipEmptyRows=FALSE, skipEmptyCols = TRUE, colNames=TRUE))) %>%
+                                                    select(1,15,16,17,19)
 names(outlays_proj_10yr) <- c("year", "outlays_mand", "outlays_disc", "outlays_ni", "outlays")
-outlays_proj_10yr <- outlays_proj_10yr[c(seq(3,13)),] %>% mutate_if(is.character,as.numeric)
+outlays_proj_10yr <- outlays_proj_10yr[c(seq(6,16)),] %>% mutate_if(is.character,as.numeric)
 
-#Ten-year mandatory outlays, detail (BEO Table 1-4):
-outlays_proj_10yr_mand <- as.data.frame(t(read.xlsx(file.path(CBO_Budget_Proj_path, "Budget-Projections.xlsx"), sheet = "Table 1-4", 
+#Ten-year mandatory outlays, detail (BEO Table 2):
+outlays_proj_10yr_mand <- as.data.frame(t(read.xlsx(file.path(CBO_Budget_Proj_path, "Budget-Projections.xlsx"), sheet = "Table 2", 
                           startRow = 7, skipEmptyRows=FALSE, skipEmptyCols = TRUE, colNames=TRUE))) %>% 
-                          select(1,5,65)
+                          select(3,9,79)
 names(outlays_proj_10yr_mand) <- c("year", "outlays_mand_oasdi", "outlays_mand_health")
-outlays_proj_10yr_mand <- outlays_proj_10yr_mand[c(seq(3,13)),] %>% mutate_if(is.character,as.numeric)
+outlays_proj_10yr_mand <- outlays_proj_10yr_mand[c(seq(7,17)),] %>% mutate_if(is.character,as.numeric)
 
 
 #Long-run outlay projections (LTBO Table 1)
-outlays_proj_ltbo <- read.xlsx(file.path(CBO_LTBO_path, "LTBO-budget.xlsx"), sheet = "1. Summary Ext Baseline", 
+fig9 <- read.xlsx(file.path(CBO_LTBO_path, "LTBO.xlsx"), sheet = "Figure 9", 
+                  startRow = 8, skipEmptyRows=TRUE, skipEmptyCols = TRUE, colNames=TRUE) %>%
+  mutate_if(is.character,as.numeric) 
+names(fig9) <- c("year","outlays_disc_gdp_ltbo", "outlays_mand_other_gdp_ltbo") 
+fig9 <- fig9 %>% filter(!is.na(year))
+
+outlays_proj_ltbo <- read.xlsx(file.path(CBO_LTBO_path, "LTBO.xlsx"), sheet = "1. Summary Extended Baseline", 
                           startRow = 10, skipEmptyRows=TRUE, skipEmptyCols = TRUE, colNames=TRUE) %>%
-  select(Fiscal.year,Social.Security,Medicarea,starts_with("Medicaid"), Discretionary, Net.interest, Other.mandatory) %>% mutate_if(is.character,as.numeric) 
-names(outlays_proj_ltbo) <- c("year", "outlays_mand_oasdi_gdp_ltbo", "Medicare", "Medicaid", 
-                         "outlays_disc_gdp_ltbo", "outlays_ni_gdp_ltbo", "outlays_mand_other_gdp_ltbo")
+  select(Fiscal.Year,Social.Security,Medicarea,starts_with("Medicaid"), Net.Interest) %>% mutate_if(is.character,as.numeric) 
+names(outlays_proj_ltbo) <- c("year", "outlays_mand_oasdi_gdp_ltbo", "Medicare", "Medicaid", "outlays_ni_gdp_ltbo")
+outlays_proj_ltbo <- outlays_proj_ltbo %>% left_join(fig9, by="year")
+
 outlays_proj_ltbo$outlays_mand_health_gdp_ltbo <- outlays_proj_ltbo$Medicare + outlays_proj_ltbo$Medicaid 
 outlays_proj_ltbo$outlays_mand_gdp_ltbo <- outlays_proj_ltbo$outlays_mand_oasdi_gdp_ltbo + outlays_proj_ltbo$outlays_mand_health_gdp_ltbo + outlays_proj_ltbo$outlays_mand_other_gdp_ltbo
 outlays_proj_ltbo$outlays_gdp_ltbo <- outlays_proj_ltbo$outlays_disc_gdp_ltbo + outlays_proj_ltbo$outlays_mand_gdp_ltbo + outlays_proj_ltbo$outlays_ni_gdp_ltbo
@@ -408,7 +415,7 @@ budget_proj <- rev_proj %>% left_join(outlays_proj, by="year")
 
 #Finally, set some revenue variables to missing for projected (these will be filled in by the Tax Simulator)
 for (var in c("rev","rev_iit","rev_payroll")) {
- budget_proj[budget_proj$year>=firstyr_proj, var] = NA
+ #budget_proj[budget_proj$year>=firstyr_proj, var] = NA
 }
  
 #------------------------------
@@ -423,7 +430,7 @@ for (var in c("rev","rev_iit","rev_payroll")) {
 #projections.
 
 #First, test to see what the first year of CBO projections is
-demo_test <- read.xlsx(file.path(CBO_Demographic_path, "Demographic-Projections.xlsx"), sheet = "2. Pop by age, sex, marital", 
+demo_test <- read.xlsx(file.path(CBO_Demographic_path, "Demographic-Projections.xlsx"), sheet = "Pop by Age, Sex, and Marital", 
                       startRow = 7, skipEmptyRows=FALSE, skipEmptyCols = TRUE, colNames=FALSE)
 firstyr_cbo_demo <- as.numeric(demo_test[1,2])
 
@@ -442,8 +449,8 @@ demo <- demo_raw %>% filter(year >= firstyr_hist, year < firstyr_cbo_demo)
 
 #For projections, loop over years, pulling population counts from CBO
 for (y in firstyr_cbo_demo:lastyr_proj) {
-  start_row <- 10 + 110*(y - firstyr_cbo_demo)
- demo_raw <- read.xlsx(file.path(CBO_Demographic_path, "Demographic-Projections.xlsx"), sheet = "2. Pop by age, sex, marital", 
+  start_row <- 11 + 110*(y - firstyr_cbo_demo)
+ demo_raw <- read.xlsx(file.path(CBO_Demographic_path, "Demographic-Projections.xlsx"), sheet = "Pop by Age, Sex, and Marital", 
                startRow = start_row, skipEmptyRows=FALSE, skipEmptyCols = TRUE, colNames=FALSE)
  names(demo_raw) <- c("age","total", "total_male","single_male","married_male","widowed_male", "divorced_male",
                            "total_female","single_female","married_female","widowed_female", "divorced_female" )

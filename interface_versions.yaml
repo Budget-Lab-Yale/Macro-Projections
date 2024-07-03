@@ -5,17 +5,42 @@
 
 Macro-Projections:
   type: model_data
-  version: 2
+  version: 3
 
 
 #---------------------
 # Dependency versions
 #---------------------
 
-SSA: 
+CBO_Budget_Hist: 
   type: raw_data
-  version: 2
+  version: 3
+
+
+CBO_Budget_Proj: 
+  type: raw_data
+  version: 3
+
+CBO_Demographic: 
+  type: raw_data
+  version: 3
+
+CBO_Econ_Hist: 
+  type: raw_data
+  version: 3
   
-CBO: 
+CBO_Econ_Proj: 
   type: raw_data
-  version: 2
+  version: 3
+
+CBO_LTBO: 
+  type: raw_data
+  version: 3
+
+SSA_Demographic: 
+  type: raw_data
+  version: 3
+
+SSA_AWI: 
+  type: raw_data
+  version: 3

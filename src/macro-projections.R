@@ -28,9 +28,9 @@ CBO_Econ_Proj_vintage   <- "20240618"
 CBO_LTBO_vintage        <- "20240320"
 #b. SSA products
 SSA_Demographic_vintage <- "20240506"
-SSA_AWI_vintage <- "20231012"
+SSA_AWI_vintage <- "20241010"
 #c. Output
-out_vintage <- "2024061815"
+out_vintage <- "2024111415"
 
 # Define first/last years of historical/projected data
 firstyr_hist <- 1970
@@ -75,8 +75,8 @@ dir.create(out_path)
 # i. CY GDP/EMP
 econ_hist_cy <- read.csv(file.path(CBO_Econ_Hist_path, "Annual_CY.csv"))
 econ_hist_cy <- econ_hist_cy %>%
- select(date, gdp, empl_payroll_nf, wages_and_salaries, cpiu, chained_cpiu, pce_price_index) %>%
- rename(year = date, emp_est = empl_payroll_nf, gdp_wages = wages_and_salaries, cpiu_index = cpiu, ccpiu_index = chained_cpiu, pce_deflator_index = pce_price_index)
+ select(date, gdp, empl_payroll_nf, wages_and_salaries, cpiu, chained_cpiu, pce_price_index, treasury_note_rate_10yr) %>%
+ rename(year = date, emp_est = empl_payroll_nf, gdp_wages = wages_and_salaries, cpiu_index = cpiu, ccpiu_index = chained_cpiu, pce_deflator_index = pce_price_index, tsy_10y = treasury_note_rate_10yr)
 
 # ii. FY GDP
 econ_hist_fy <- read.csv(file.path(CBO_Econ_Hist_path, "Annual_FY.csv"))
@@ -272,7 +272,7 @@ for (var in c("rgdp", "cpiu", "ccpiu", "cpiu_irs", "ccpiu_irs", "gdp_deflator", 
  econ_all[, var] = econ_all[, paste0(var,"_index")] / econ_all[econ_all$year == firstyr_proj, paste0(var,"_index")]
 }
 
-econ_hist_order <- c("year", "gdp",	"gdp_fy",	"cpiu_irs",	"ccpiu_irs",	"awi")
+econ_hist_order <- c("year", "gdp",	"gdp_fy", "cpiu", "cpiu_irs",	"ccpiu_irs","awi", "tsy_10y")
 econ_hist <- econ_all[, econ_hist_order] %>% filter(year>=firstyr_hist, year<=(firstyr_proj-1))
 
 econ_proj_order <- c("year", "gdp", "gdp_c", "gdp_i", "gdp_g","gdp_nx", 

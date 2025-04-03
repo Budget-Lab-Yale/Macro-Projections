@@ -289,7 +289,7 @@ econ_all <- econ_all %>%
     mutate(gdp_fy_gr = gdp_gr,
            emp_hh_gr = lf_gr,
            emp_est_gr = lf_gr,
-           gdp_interest_gr = gdp_gr * (tsy_10y/lag(tsy_10y)),
+           gdp_interest_gr = gdp_gr * (tsy_10y_ltbo/lag(tsy_10y_ltbo)),
            cpiu_irs_index_gr = cpiu_index_gr
     )
 #CCPIU_INDEX: in long run, grows by same rate as cpi_u minus average spread in growth rates over 10-year window

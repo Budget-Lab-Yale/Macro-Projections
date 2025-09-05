@@ -249,7 +249,7 @@ econ_ltbo <- econ_ltbo %>% setNames(c('year', as.character(econ_ltbo[1,-1]))) %>
                                 avg_rate_debt
                               ) %>%
                           filter(!is.na(year)) %>%
-                            mutate_if(is.character,as.numeric)
+                            mutate(across(where(is.character), as.numeric))
 
 # For years after lastyr_ltbo, extend by assuming that all variables are in long-run
 # steady-state as of lastyr_ltbo
@@ -385,7 +385,7 @@ budget_hist_tab2 <- read.xlsx(file.path(CBO_Budget_Hist_path, 'Historical-Budget
                               skipEmptyRows=TRUE, 
                               skipEmptyCols = TRUE, 
                               colNames=TRUE) %>%
-                        mutate_if(is.character,as.numeric) %>%
+                        mutate(across(where(is.character), as.numeric)) %>%
                           rename(year = X1,
                                  rev_iit = Individual.income.taxes,
                                  rev_payroll = Payroll.taxes,
@@ -405,7 +405,7 @@ budget_hist_tab3 <- read.xlsx(file.path(CBO_Budget_Hist_path, 'Historical-Budget
                               skipEmptyCols = TRUE, 
                               colNames=TRUE) %>%
                         select(X1, Discretionary,Net.interest,Total) %>% 
-                          mutate_if(is.character,as.numeric) %>%
+                          mutate(across(where(is.character), as.numeric)) %>%
                             rename(year = X1,
                                    outlays_disc = Discretionary,
                                    outlays_ni = Net.interest,
@@ -420,7 +420,7 @@ budget_hist_tab5 <- read.xlsx(file.path(CBO_Budget_Hist_path, 'Historical-Budget
                               skipEmptyCols = TRUE, 
                               colNames=TRUE) %>%
                         select(X1, Total, Social.Security, contains('health.care')) %>%
-                          mutate_if(is.character,as.numeric) %>%
+                          mutate(across(where(is.character), as.numeric)) %>%
                             rename(year = X1,
                                    outlays_mand = Total,
                                    outlays_mand_oasdi = Social.Security,
@@ -469,7 +469,7 @@ rev_10yr_proj <- read.xlsx(file.path(CBO_Budget_Proj_path, 'Revenue-Projections.
                         as.data.frame
 rev_10yr_proj <- rev_10yr_proj %>% setNames(tolower(as.character(rev_10yr_proj[1,]))) %>%
                                     select(year, starts_with('rev')) %>% 
-                                        mutate_if(is.character,as.numeric) %>%
+                                        mutate(across(where(is.character), as.numeric)) %>%
                                           filter(!is.na(year) & year>=firstyr_proj) %>%
                                             mutate(rev_misc = rev_fed_remit + rev_misc_fees) 
 
@@ -513,7 +513,7 @@ outlays_proj_10yr <- read.xlsx(file.path(CBO_Budget_Proj_path, 'Budget-Projectio
 outlays_proj_10yr <- outlays_proj_10yr %>% 
                       setNames(tolower(as.character(outlays_proj_10yr[1,]))) %>%
                         select(year, outlays, starts_with('outlays_')) %>% 
-                          mutate_if(is.character,as.numeric) %>%
+                          mutate(across(where(is.character), as.numeric)) %>%
                           filter(!is.na(year))
 
 #Ten-year mandatory outlays, detail, adjusted for timing shifts (BEO Table B-4):
@@ -536,7 +536,7 @@ outlays_proj_10yr_mand <- read.xlsx(file.path(CBO_Budget_Proj_path, 'Budget-Proj
 outlays_proj_10yr_mand <- outlays_proj_10yr_mand %>% 
                             setNames(tolower(as.character(outlays_proj_10yr_mand[1,]))) %>%
                               select(year,outlays_mand_oasdi,outlays_mand_health) %>%
-                                mutate_if(is.character,as.numeric) %>%
+                                mutate(across(where(is.character), as.numeric)) %>%
                                 filter(!is.na(year))
   
 #Long-run outlay projections (LTBO Table 1)
@@ -547,7 +547,7 @@ outlays_proj_ltbo <- read.xlsx(file.path(CBO_LTBO_path, 'LTBO-budget.xlsx'),
                                skipEmptyCols = TRUE, colNames=TRUE) %>%
                       select(Fiscal.year,Social.Security,Medicarea,starts_with('Medicaid'), 
                              Discretionary, Net.interest, Other.mandatory) %>%
-                        mutate_if(is.character,as.numeric) %>%
+                        mutate(across(where(is.character), as.numeric)) %>%
                           rename(year = Fiscal.year,
                                  outlays_mand_oasdi_gdp_ltbo = Social.Security,
                                  Medicare = Medicarea,
@@ -684,7 +684,7 @@ for (y in firstyr_cbo_demo:lastyr_proj) {
                        widowed_female = X11,
                        divorced_female = X12) %>% 
                     mutate(age = ifelse(age == '100+', '100', age)) %>%
-                        mutate_if(is.character,as.numeric) %>%
+                        mutate(across(where(is.character), as.numeric)) %>%
                           filter(!is.na(age)) %>%
                             mutate(year = y,
                                    married = married_male + married_female,

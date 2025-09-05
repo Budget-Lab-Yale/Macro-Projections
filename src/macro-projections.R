@@ -52,34 +52,18 @@ fredr_set_key(fred_key)
 # Lists of data sources and vintages
 sources_hist <- c('SSA_AWI', 'SSA_Demographic', 'CBO_Budget_Hist','CBO_Econ_Hist')
 sources_proj <- c('CBO_Budget_Proj', 'CBO_Demographic', 'CBO_Econ_Proj', 'CBO_LTBO')
-for (x in c('hist', 'proj')) {
-  assign(paste0('sources_',x,'_vintages'), c())
-  for (data_source in get(paste0('sources_',x))) {
-    assign(paste0('sources_',x,'_vintages'), 
-           c(get(paste0('sources_',x,'_vintages')), 
-             c(get(paste0(data_source,'_vintage')))))
-  }
-}
+sources_hist_vintages <- map_chr(sources_hist, ~ get(paste0(.x, '_vintage')))
+sources_proj_vintages <- map_chr(sources_proj, ~ get(paste0(.x, '_vintage')))
 
 # Define data paths
-for (data_source in sources_hist) {
-  assign(paste0(data_source, '_path'),
-         paste0('/gpfs/gibbs/project/sarin/shared/raw_data/',
-                gsub('_','-',data_source),'/',data_version,'/', 
-                get(paste0(data_source,'_vintage')), '/historical/'))
-}
-for (data_source in sources_proj) {
-  assign(paste0(data_source, '_path'),
-         paste0('/gpfs/gibbs/project/sarin/shared/raw_data/',
-                gsub('_','-',data_source),'/',data_version,'/', 
-                get(paste0(data_source,'_vintage')), '/baseline/'))
-}
-out_path <- paste0('/gpfs/gibbs/project/sarin/shared/model_data/Macro-Projections/', 
-                   data_version, '/', out_vintage, '/baseline/')
+base_data_dir <- '/gpfs/gibbs/project/sarin/shared/raw_data'
+set_source_paths(sources_hist, sources_hist_vintages, data_version, base_data_dir, 'historical')
+set_source_paths(sources_proj, sources_proj_vintages, data_version, base_data_dir, 'baseline')
+out_path <- file.path('/gpfs/gibbs/project/sarin/shared/model_data/Macro-Projections',
+                      data_version, out_vintage, 'baseline')
 
-# Create output directories if they don't already exist
-dir.create(gsub('/baseline/','',out_path))
-dir.create(out_path)
+# Create output directory if it doesn't already exist
+dir.create(out_path, recursive = TRUE, showWarnings = FALSE)
 
 #------------------------------
 
@@ -722,14 +706,14 @@ demo_proj <- demo %>% filter(year >= firstyr_proj, year <= lastyr_proj)
 
 #------------------------------
 # Historical
-historical <- econ_hist %>% left_join(budget_hist, by='year') %>% 
-                              left_join(demo_hist, by='year') 
-write.csv(historical, file = paste0(out_path,'historical.csv'), row.names = FALSE, na='')
+historical <- econ_hist %>% left_join(budget_hist, by = 'year') %>%
+                              left_join(demo_hist, by = 'year')
+write.csv(historical, file = file.path(out_path, 'historical.csv'), row.names = FALSE, na = '')
 
 # Projections
-projections <- econ_proj %>% left_join(budget_proj, by='year') %>% 
-                              left_join(demo_proj, by='year')
-write.csv(projections, file = paste0(out_path,'projections.csv'), row.names = FALSE, na='')
+projections <- econ_proj %>% left_join(budget_proj, by = 'year') %>%
+                              left_join(demo_proj, by = 'year')
+write.csv(projections, file = file.path(out_path, 'projections.csv'), row.names = FALSE, na = '')
 
 # Dependencies
 dependencies <- data.frame(ID = c(replicate((length(sources_hist)+length(sources_proj)),'baseline')),
@@ -737,4 +721,4 @@ dependencies <- data.frame(ID = c(replicate((length(sources_hist)+length(sources
                            version = c(replicate((length(sources_hist)+length(sources_proj)), gsub('v','',data_version))),
                            vintage = c(sources_hist_vintages, sources_proj_vintages),
                            scenario = c(replicate(length(sources_hist),'historical'), replicate(length(sources_proj),'baseline')))
-write.csv(dependencies, file = paste0(gsub('/baseline/','/',out_path),'dependencies.csv'), row.names = FALSE, na='')
+write.csv(dependencies, file = file.path(dirname(out_path), 'dependencies.csv'), row.names = FALSE, na = '')

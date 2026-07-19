@@ -236,7 +236,8 @@ econ_ltbo <- read.xlsx(file.path(CBO_LTBO_path, 'LTBO-econ.xlsx'),
                   mutate(X1 = case_when(
                     X1 == 'Real GDP'                                              ~ 'rgdp_index_gr',
                     X1 == 'Nominal GDP'                                           ~ 'gdp_gr',
-                    
+                    X1 == 'Growth of total hours worked'                          ~ 'agg_hours_gr',
+
                     lag(X1,2) == 'Labor force participation rated' & X1 == 'BLS Through 2025 Plus CBO Projectionf'  ~ 'lfpr_ltbo',
                     lag(X1,2) == 'Labor force growth' & X1 == 'BLS Through 2025 Plus CBO Projectionf'  ~ 'lf_gr',
                     
@@ -256,6 +257,7 @@ econ_ltbo <- econ_ltbo %>% setNames(c('year', as.character(econ_ltbo[1,-1]))) %>
                                 year,
                                 rgdp_index_gr,
                                 gdp_gr,
+                                agg_hours_gr,
                                 lf_gr,
                                 lfpr_ltbo,
                                 u3_ltbo,
@@ -275,6 +277,15 @@ for (y in (lastyr_ltbo+1):lastyr_proj) {
   lastyr_ltbo_rate$year <- y
   econ_ltbo <- bind_rows(econ_ltbo,lastyr_ltbo_rate)
 }
+
+# Aggregate hours index: cumulate CBO's "Growth of total hours worked" (LTBO) into
+# an index level, normalized to 100 in the first year of the LTBO series. Built from
+# the full LTBO series (including pre-projection years) so that the cumulative level
+# in the projection window is correct; only projection years are kept for output.
+agg_hours <- econ_ltbo %>%
+              arrange(year) %>%
+                mutate(agg_hours_index = 100 * cumprod(ifelse(row_number()==1, 1, 1 + agg_hours_gr/100))) %>%
+                  select(year, agg_hours_index)
 
 #Combine historical and projected econ (average rate on debt only found in LTBO file):
 econ_10yr <- econ_10yr_cy %>% 
@@ -728,8 +739,9 @@ historical <- econ_hist %>% left_join(budget_hist, by='year') %>%
 write.csv(historical, file = paste0(out_path,'historical.csv'), row.names = FALSE, na='')
 
 # Projections
-projections <- econ_proj %>% left_join(budget_proj, by='year') %>% 
-                              left_join(demo_proj, by='year')
+projections <- econ_proj %>% left_join(budget_proj, by='year') %>%
+                              left_join(demo_proj, by='year') %>%
+                              left_join(agg_hours, by='year')
 write.csv(projections, file = paste0(out_path,'projections.csv'), row.names = FALSE, na='')
 
 # Dependencies

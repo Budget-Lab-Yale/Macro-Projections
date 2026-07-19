@@ -28,7 +28,7 @@ CBO_LTBO_vintage        <- '20260225'
 SSA_Demographic_vintage <- '20250618'
 SSA_AWI_vintage <- '20251010'
 #c. Output
-out_vintage <- '2026031112'
+out_vintage <- '2026071916'
 
 
 #---------------------------------------
@@ -734,8 +734,9 @@ demo_proj <- demo %>% filter(year >= firstyr_proj, year <= lastyr_proj)
 
 #------------------------------
 # Historical
-historical <- econ_hist %>% left_join(budget_hist, by='year') %>% 
-                              left_join(demo_hist, by='year') 
+historical <- econ_hist %>% left_join(budget_hist, by='year') %>%
+                              left_join(demo_hist, by='year') %>%
+                              left_join(agg_hours, by='year')
 write.csv(historical, file = paste0(out_path,'historical.csv'), row.names = FALSE, na='')
 
 # Projections

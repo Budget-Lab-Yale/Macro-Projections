@@ -28,7 +28,7 @@ CBO_LTBO_vintage        <- '20260225'
 SSA_Demographic_vintage <- '20250618'
 SSA_AWI_vintage <- '20251010'
 #c. Output
-out_vintage <- '2026071916'
+out_vintage <- '2026110912'
 
 
 #---------------------------------------
@@ -121,12 +121,23 @@ cpiu <- fredr('CPIAUCNS') %>%
                   rename(year = year_irs)
 
 # b. C-CPI-U (NSA)
-# NOTE: Under TCJA, the IRS adjusts tax parameters from tax year (y-1) to tax 
-#    year (y) by multiplying the (y-1) parameters by the ratio of:
+# NOTE: The IRS indexes a dollar amount for tax year y by the ratio of:
 #    -- C-CPI-U (NSA) average, September (y-2) to August (y-1); to
-#    -- C-CPI-U (NSA) average, September (y-3) to August (y-2).
-#    This is done using data current as of September (y-1) and September (y-2),
-#    respectively.
+#    -- C-CPI-U (NSA) average over the twelve months ending in August of the
+#       base year the statute names (2017 for most TCJA amounts).
+#    IRC 1(f)(6)(A) says both averages use the index values published as of
+#    the initial August (y-1) release. BLS revises C-CPI-U for about a year
+#    after first publication, so in that release the numerator still holds
+#    preliminary values, while the base year's values are already final.
+#
+#    Two series are published so that a user can form this ratio:
+#    -- ccpiu_irs: each year's average as published today, after revision
+#       (the denominator, when that year is the base year)
+#    -- ccpiu_irs_sept: each year's average as published that September
+#       (the numerator of the ratio)
+#    The two series are on the same scale. In projection years they are equal.
+#    The vintage pulled is September 30, which falls after the August release
+#    and before the next one.
 for (y in 2012:(firstyr_proj-1)) {
  fred_raw <- fredr('SUUR0000SA0', vintage_dates = as.Date(paste0(y,'-09-30'))) %>%
               select(date, value) %>%
@@ -144,11 +155,27 @@ ccpiu <- ccpiu %>%
             select(year_irs, starts_with('ccpiu_')) 
 ccpiu <- aggregate(. ~ year_irs, data = ccpiu, mean, na.action=NULL)
 for (y in 2012:(firstyr_proj-1)) {
-  ccpiu$ccpiu_irs_index[ccpiu$year_irs == y] <- (ccpiu[ccpiu$year_irs == y, paste0('ccpiu_',y,'0930')])
+  ccpiu$ccpiu_irs_sept_index[ccpiu$year_irs == y] <- (ccpiu[ccpiu$year_irs == y, paste0('ccpiu_',y,'0930')])
 }
 ccpiu <- ccpiu %>%  filter(year_irs %in% seq(firstyr_hist, firstyr_proj)) %>% 
-                      select(year_irs, ccpiu_irs_index) %>%
+                      select(year_irs, ccpiu_irs_sept_index) %>%
                         rename(year = year_irs)
+
+# Current (revised) values. The series begins in December 1999, so only
+# averages over a full twelve months are kept.
+ccpiu_final <- fredr('SUUR0000SA0') %>%
+                mutate(
+                  date = as.Date(date, format = '%Y-%m-%d'),
+                  year = year(date),
+                  month = month(date),
+                  year_irs = ifelse(month < 9, year, year + 1)
+                ) %>%
+                  group_by(year_irs) %>%
+                    filter(n() == 12) %>%
+                      summarize(ccpiu_irs_index = mean(value)) %>%
+                        filter(year_irs %in% seq(firstyr_hist, firstyr_proj)) %>%
+                          rename(year = year_irs)
+ccpiu <- ccpiu %>% full_join(ccpiu_final, by = 'year')
 
 # Merge all historical econ data
 econ_hist <- econ_hist_cy %>%
@@ -370,13 +397,17 @@ for (y in (firstyr_proj-1):lastyr_proj) {
       ))
   }
 }
+# Projected C-CPI-U grows from the last year's revised value. A projected year
+# has no separate preliminary value, so both C-CPI-U series take the projection.
+econ_all <- econ_all %>%
+  mutate(ccpiu_irs_sept_index = ifelse(year >= firstyr_proj, ccpiu_irs_index, ccpiu_irs_sept_index))
 #Fill in some missing variables from LTBO
 econ_all <- econ_all %>%
   mutate(across(c('u3','lfpr'), ~ ifelse(!is.na(.x),.x, get(paste0(cur_column(),'_ltbo')))))
 
 #For some variables, rescale as cumulative growth from first year of CBO forecast
 econ_all <- econ_all %>% mutate(
-    across(c('rgdp_index', 'cpiu_index', 'ccpiu_index', 'cpiu_irs_index', 'ccpiu_irs_index', 
+    across(c('rgdp_index', 'cpiu_index', 'ccpiu_index', 'cpiu_irs_index', 'ccpiu_irs_sept_index', 'ccpiu_irs_index', 
              'gdp_deflator_index', 'pce_deflator_index', 'awi_index'),
            ~ {baseline_value <- econ_all %>%  filter(year == firstyr_proj) %>% pull(cur_column())
              get(cur_column()) / baseline_value},
@@ -388,12 +419,12 @@ econ_all <- econ_all %>% mutate(
 econ_all <- econ_all %>% mutate(gdp_nx = gdp - gdp_c - gdp_i - gdp_g)
 
 #Split back out into historical/projected data frames
-econ_hist_order <- c('year', 'gdp',	'gdp_fy', 'gdp_wages', 'cpiu', 'cpiu_irs',	'ccpiu_irs','awi', 'tsy_10y')
+econ_hist_order <- c('year', 'gdp',	'gdp_fy', 'gdp_wages', 'cpiu', 'cpiu_irs',	'ccpiu_irs', 'ccpiu_irs_sept', 'awi', 'tsy_10y')
 econ_hist <- econ_all[, econ_hist_order] %>% filter(year>=firstyr_hist, year<=(firstyr_proj-1))
 
 econ_proj_order <- c('year', 'gdp', 'gdp_c', 'gdp_i', 'gdp_g','gdp_nx', 
           'gdp_comp', 'gdp_wages', 'gdp_proprietors',	'gdp_rent', 'gdp_interest', 'gdp_div', 'gdp_corp', 'gdp_fy', 'rgdp',
-          'pce_deflator', 'cpiu', 'ccpiu', 'cpiu_irs', 'ccpiu_irs', 'gdp_deflator', 'awi',	
+          'pce_deflator', 'cpiu', 'ccpiu', 'cpiu_irs', 'ccpiu_irs', 'ccpiu_irs_sept', 'gdp_deflator', 'awi',	
           'u3', 'lfpr',	'emp_hh', 'emp_est', 'tsy_10y', 'tsy_3m', 'ffr', 'avg_rate_debt')
 econ_proj <- econ_all[, econ_proj_order] %>% filter(year>=firstyr_proj)
 
